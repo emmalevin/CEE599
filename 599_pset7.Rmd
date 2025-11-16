@@ -1,0 +1,50 @@
+---
+title: "CEE599 Pset 7, Emma Levin"
+output:
+  html_document:
+    df_print: paged
+---
+Clear workspace
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+Question 2
+Given the following data, use ANOVA and Kruskall-Wallis test (5% significance level). Compare and contrast the results from the two tests, elaborate on the assumptions that you would be making and whether they are justified in this case.
+
+For both tests:
+$H_0: \mu_1 = \mu_2 = \mu_3$ and $H_1$: two or more of $\mu_1$, $\mu_2$, or $\mu_3$ are different. 
+
+Data:
+```{r}
+Treat = data.frame(Y = c(24,16.7,22.8,19.8,18.9,23.2,19.8,18.1,17.6,20.2,17.8,18.4,19.1,17.3,17.3,19.7,18.9,18.8,19.3), level = c("1","1","1","1","1","2","2","2","2","2","2","3","3","3","3","3","3","3","3"))
+```
+
+First I will complete the ANOVA Test.
+```{r}
+#ANOVA
+aov.model <- aov(Treat$Y ~ Treat$level)
+summary(aov.model)
+aov.model$coefficients
+
+plot(aov.model) #plotting ANOVA diagnostics
+```
+The P-value of our ANOVA test is 0.293, which is greater than our critical p-value of 0.05. Therefore, we fail to reject the null hypothesis that $H_0: \mu_1 = \mu_2 = \mu_3$. 
+
+Additionally, our key assumptions for the ANOVA are:
+1) The different levels have constant variances
+2) The residuals are normally distributed
+
+To test the first assumption about variances we examine the first plot above, where we have the distributions of the residuals plotted as a function of their fitted values. Visually, we observe that the distributions have fairly different spreads, with the residuals of the lowest fitted value much tighter than the residuals of the highest fitted values. Also as a quick check, we examine the sample standard deviations of the different levels 1, 2, and 3, respectively: 2.959, 2.131, and 0.886. Since 2x the smallest sample deviation is less than the largest sample standard deviation (2*0.886 = 1.77 < 2.959), we can conclude that the sample standard deviations of the levels are different. Therefore, assumption 1 for the ANOVA test is not met. 
+
+To check if the residuals are normally distributed, we example plot 2: a Q-Q plot of the residuals and determine if they are linear. For the most part, the residuals are linear, except there are key outliers that fall outside the linear pattern (i.e. the points labelled 1, 6, and 2 on the graph). Therefore, I would not be super confident in making the assumption that the residuals are normally distributed. 
+
+Since the two ANOVA assumptions are not met, I would feel more comfortable completing the same analysis testing the above $H_0$ and $H_1$ using the non-parametric version of the ANOVA test: the Kruskal Wallis Test. From our textbook (5.5.3), our only assumption with this test is that "all samples are random samples from their individual populations and that there is independence within the samples and between them." I will assume this assumption holds, even though the question does not specify how the data was collected. 
+
+
+```{r}
+# perform KW test
+kruskal.test(Y ~ level, data = Treat)
+
+```
+The P-value of our Kruskal Wallis test is 0.4354, which is greater than our critical p-value of 0.05. Therefore, we fail to reject the null hypothesis that $H_0: \mu_1 = \mu_2 = \mu_3$.

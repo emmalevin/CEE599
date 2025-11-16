@@ -1,0 +1,238 @@
+---
+title: "Emma Levin CEE599 Pset 1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+library(vioplot) # load "vioplot" package
+```
+
+
+1. Write an R function that computes the third largest value in a vector of numbers. Your function should report an error if there are fewer than three numbers in the vector or if the input is something other than a vector of numbers.
+
+```{r}
+largest3 <- function(vector) {
+  # print error if there are fewer than three numbers in the vector 
+  if (length(vector) < 3) {
+    print('Error: input vector has fewer than three elements')}
+  # print error if the input is something other than a vector of numbers
+  if (!is.numeric(vector)) {
+    print('Error: input vector is something other than a vector of numbers')}
+  
+  # to calculate 3rd largest value in vector:
+  # remove 1st and 2nd max values incrementally 
+  first_max = max(vector)
+  vector_no_1max = vector[vector != first_max]
+  
+  second_max = max(vector_no_1max)
+  vector_no_1max_2_max = vector_no_1max[vector_no_1max != second_max]
+  
+  # return the third max value in of the vector
+  third_max = max(vector_no_1max_2_max)
+  return(third_max)
+}
+
+# test cases 
+vector1 = c(1,2,3,4,5,6,7) # answer = 5
+largest3(vector1)
+
+vector2 = c(1,2) 
+# should get: Error: input vector has fewer than three elements
+largest3(vector2)
+
+vector3 = c('hat', 'dog', 'cat', 'apple') 
+# should get: Error: input vector is something other than a vector of numbers
+largest3(vector3)
+
+```
+
+2. Write a function kmax(x, k=1, …) that returns the kth largest element of x. When k=1, your function should behave just like max(). Your function should report an error when the inputs provided by the user are not realistic / feasible.
+
+```{r}
+kmax <- function(vector, k) {
+  # print error if there are fewer than three numbers in the vector 
+  if (length(vector) < k) {
+    print('Error: input vector has too few elements to compute kmax')}
+  # print error if the input is something other than a vector of numbers
+  if (!is.numeric(vector)) {
+    print('Error: input vector is something other than a vector of numbers')}
+  
+  # following the methods above for 3rd max, compute 1st, 2nd, ... max and 
+  # keep removing them from the vector until we are left with kth max
+  for (i in 1:k){
+    ith_max = max(vector)
+    vector = vector[vector != ith_max]
+  }
+  # return kth max
+  return(ith_max)
+}
+
+# test cases 
+vector1 = c(1,2,3,4,5,6,7) 
+kmax(vector1, 2) # answer = 6
+kmax(vector1, 1) # answer = 7
+kmax(vector1, 4) # answer = 4
+kmax(vector1, 8) # Error: input vector has too few elements to compute kmax
+
+vector2 = c('hat', 'dog', 'cat', 'apple') 
+# should get: Error: input vector is something other than a vector of numbers
+kmax(vector2, 3)
+```
+
+3. Annual maximum flood flows in the Po River at Pontelagoscuro, Italy over a 61- year period are given  (in m3/s).
+
+```{r}
+# save data for problems 3 and 4 as csv and load as a dataframe 
+df <- read.csv(file = "pset1.csv")
+head(df,n=3) 
+```
+
+1) compute the sample mean and standard deviation
+```{r}
+mean(df$Po) # mean
+sd(df$Po) # sd
+```
+
+2) plot a histogram
+```{r}
+# number of bins should be approximately equal to sqrt(n) (number of datapoints)
+nbins = round(sqrt(length(df$Po)), digits=0)
+# plot histogram
+hist(df$Po, breaks = nbins, col = "lightblue", border = "pink", main = "Histogram of Po River maximum flood flow", xlab = "maximum flood flows (m^3/s)")
+```
+3) compute the quartiles and plot a box and whiskers plot, and comment on the distribution
+```{r}
+# quartiles of distribution
+quantile(df$Po,probs=c(0,0.25,0.5,0.75,1))
+
+# box and whiskers plot 
+p<-boxplot(df$Po ,
+           xlab = 'Po River',
+           ylab = "Drainage area (mi^2)", 
+           main = "maximum flood flow (m^3/s)", #Add Title
+           ylim=c(min(df$Po),max(df$Po)), #Set plot limits
+           outline=F, #Remove Outliers
+           whiskcol=NA, #Remove original 
+           staplecol=NA #Remove Staples
+)
+
+#Add grid lines if desired
+grid(nx = NULL, ny = NULL,
+     lty = 1,      # Grid line type
+     col = "gray", # Grid line color
+     lwd = 1)      # Grid line width
+
+#Next loop through the x-axis groups to calculate and plot segments for 5th and 95th quantile
+w = 0.1 #staple width
+
+q <- quantile(df$Po,p=c(0.05,0.95)) #Get 5th and 95th values
+segments(x0 = 1, y0 = q[1], x1 = 1, y1 = q[2],lwd=2) #wiskers
+segments(x0 = 1-w, y0 = q[1], x1 = 1+w, y1 = q[1],lwd=2) #staples for 5th percentile
+segments(x0 = 1-w, y0 = q[2], x1 = 1+w, y1 = q[2],lwd=2)  #staples for 5th percentile
+
+#Add boxplot back on top since base R plots are based on code order for plot elements
+boxplot(df$Po, 
+        outline=F, #Remove Outliers
+        whiskcol=NA, #Remove original 
+        staplecol=NA, #Remove Staples
+        add=T # This is required to add on top
+)
+```
+The distribution of maximum flood flow at the Po river appears to be fairly symmetric, since the mean and median are roughly equivalent (~5400 m^3/s). According to the histogram, the distribution is unimodal. According to the box and whisker plot, the 10%-90% quantiles are approximately 2600-8000 m^3/s, which encompasses a typical range of maximum flood flows at this river. 
+
+Flood embankments along the banks of the river can withstand a flow of 5000 m3/s. What is the probability that this will be exceeded during a 12-month period?
+```{r}
+# Use the empirical cdf function P(x>5000) = 1-P(x<5000)
+# where P(x<5000) is the quantile of the data at 5000 m3/s (also known as the cdf)
+
+# create function for given data
+F_cdf <- ecdf(df$Po)
+
+# Get the quantile for flow of 5000 m3/s
+quantile_5000 <- F_cdf(5000)
+
+# flow that exceeds
+1 - quantile_5000
+
+```
+The probability that a flow of 5000m3/s will be exceeded during a 12-month period is 0.59. 
+
+4. We are given the annual maximum flows in m3/s in the Colorado River at Black Canyon for a 52-year period:
+
+ 1) compute the sample mean and standard deviation
+
+```{r} 
+# remove NA values from column with Co river data
+Co <- na.omit(df$Co)
+
+mean(Co) # mean
+sd(Co) # sd
+```
+
+ 2) plot a histogram 
+```{r}
+# number of bins should be approximately equal to sqrt(n) (number of datapoints)
+nbins = round(sqrt(length(Co)), digits=0)
+# plot histogram
+hist(Co, breaks = nbins, col = "lightblue", border = "pink", main = "Histogram of Co River maximum flood flow", xlab = "maximum flood flows (m^3/s)")
+```
+ 
+ 3) compute the quartiles and plot a box and whiskers plot, and comment on the distribution.
+```{r}
+# quartiles of distribution
+quantile(Co,probs=c(0,0.25,0.5,0.75,1))
+
+# box and whiskers plot 
+p<-boxplot(Co ,
+           xlab = 'Co River',
+           ylab = "Drainage area (mi^2)", 
+           main = "maximum flood flow (m^3/s)", #Add Title
+           ylim=c(min(Co),max(Co)), #Set plot limits
+           outline=F, #Remove Outliers
+           whiskcol=NA, #Remove original 
+           staplecol=NA #Remove Staples
+)
+
+#Add grid lines if desired
+grid(nx = NULL, ny = NULL,
+     lty = 1,      # Grid line type
+     col = "gray", # Grid line color
+     lwd = 1)      # Grid line width
+
+#Next loop through the x-axis groups to calculate and plot segments for 5th and 95th quantile
+w = 0.1 #staple width
+
+q <- quantile(Co,p=c(0.05,0.95)) #Get 5th and 95th values
+segments(x0 = 1, y0 = q[1], x1 = 1, y1 = q[2],lwd=2) #wiskers
+segments(x0 = 1-w, y0 = q[1], x1 = 1+w, y1 = q[1],lwd=2) #staples for 5th percentile
+segments(x0 = 1-w, y0 = q[2], x1 = 1+w, y1 = q[2],lwd=2)  #staples for 5th percentile
+
+#Add boxplot back on top since base R plots are based on code order for plot elements
+boxplot(Co, 
+        outline=F, #Remove Outliers
+        whiskcol=NA, #Remove original 
+        staplecol=NA, #Remove Staples
+        add=T # This is required to add on top
+)
+```
+The distribution of maximum flood flow at the Co river appears to be positively skewwed, since the mean is greater than the median (2837.5 m^3/s > 2410.0 m^3/s). According to the histogram, the distribution is unimodal. According to the box and whisker plot, the 10%-90% quantiles are approximately 1700-5500 m^3/s, which encompasses a typical range of maximum flood flows at this river. 
+
+How does this distribution different from that of Part 3?
+```{r}
+# plot the violin plots next to each other on same axis for better comparison
+vioplot(df$Po, Co, names = c("Po River", "Colorado River"), col = "lightblue")
+# Add title and axis labels
+title(main = "Maximum River Flows", xlab = "River", ylab = "Max flow (m3/s)")
+
+#Add grid lines 
+grid(nx = NULL, ny = NULL,
+     lty = 1,      # Grid line type
+     col = "gray", # Grid line color
+     lwd = 1)      # Grid line width
+
+```
+
+This Colorado River distribution is less symmetric than that of part 3 (positively skewed, while the distribution of part 3 is symmetric). This distribution is also centered at lower values than that of distribution 3 (mean= 2837.5 m^3/s vs. 5408.197 m^3/s and median = 2410.0 vs. 5400 m^3/s), which means that the Po river typically experiences a higher annual maximum flood flow. Lastly, given the outlier of the distribution for the Colorado river (8500 m^3/s), this distribution has a higher range of annual maximum flood flows than that of the Co river. However, the standard deviation, which is less sensitive to outliers, is higher for the annual maximum flood flows for the Colorado river, meaning the data are more concentrated around their center. 
+

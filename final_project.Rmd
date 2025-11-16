@@ -1,0 +1,116 @@
+---
+title: "599 Final Project"
+output: html_notebook
+---
+
+Clear workspace
+```{r}
+# clear workspace and load packages
+rm(list=ls(all=TRUE))
+library(gamlss)
+library(relaimpo)
+library(glmnet)
+library(ismev)
+library(lubridate)
+library(evd)
+library(moments)
+```
+
+
+Get data from spreadsheet
+```{r}
+df_c <- read.csv("/Users/emmalevin/Desktop/CEE599/combined_12_2.csv")
+head(df_c, 3)
+```
+
+Save data from spreadsheet as input to binomial regression
+```{r}
+df_c$index <- 1:nrow(df_c)
+
+# create data.frame for GAMLSS function
+df.input <- data.frame(YEAR = df_c$index, Y = df_c$MH, X1 = df_c$chi_mean,X2 = df_c$pi_mean, X3 = df_c$shear_mean, X4 = df_c$eta_mean, X5 = df_c$chi_sd, X6 = df_c$pi_sd, X7 = df_c$shear_sd, X8 = df_c$eta_sd, N = df_c$TC)
+
+# modify the df.input for modeling binomial family
+df.input$Y.GAMLSS <- with(df.input, cbind(Y, N - Y))
+```
+
+Fit model
+```{r}
+# create formula for GAMLSS function
+#formula.mu <- as.formula("Y.GAMLSS ~ X1 + X2 + X3 + X4 + X5 + X6 + X7 + X8")
+formula.mu <- as.formula("Y.GAMLSS ~ X2 + X6 + X5 + X1")
+
+# run GAMLSS
+model.fit <- gamlss(formula = formula.mu, data=df.input, family=("BI")) # "BI" : binomial distribution
+model.fit$aic # AIC value of the fitted model
+model.fit$sbc # SBC value of the fitted model
+
+# coefficients of model
+coef(model.fit)
+```
+
+See how well model does on yearly data 
+```{r}
+# obtain the fitted mu parameters in each year
+mu.fitted <- fitted(model.fit, "mu")
+
+# calculate percentiles of binomial distribution
+Ndays.50 <- qBI(p = 0.5, bd=df.input$N, mu = mu.fitted) # median
+Ndays.5 <- qBI(p = 0.05, bd=df.input$N, mu = mu.fitted) # 5-th percentiles
+Ndays.95 <- qBI(p = 0.95, bd=df.input$N, mu = mu.fitted) # 95-th percentiles
+
+plot(df.input$YEAR, Ndays.50, type='l', col='red', ylim=c(0,10), xlim = c(1, 149), ylab='Number of MHs', xlab='Year', main='Predicted and Observed MHs (en=1)') # modeled values
+lines(df.input$YEAR, Ndays.5, col='red', lty=2) # 5-th percentiles
+lines(df.input$YEAR, Ndays.95, col='red', lty=2) # 95-th percentiles
+points(df.input$YEAR, df.input$Y, col='black', pch=16) # observations
+```
+
+Worm plot for visual inspection
+```{r}
+wp(model.fit)
+```
+
+QQ. plot of residuals randomized quantile residuals
+```{r}
+# Extract the fitted mean probability (mu)
+mu <- fitted(model.fit)
+
+# Extract the number of trials (N)
+N <- df.input$N
+
+# Extract the observed successes (Y)
+Y <- df.input$Y
+
+# Compute the randomized quantile residuals
+residuals_norm <- qnorm(runif(length(mu), 
+                              pBI(Y - 1, mu = mu, bd = N),  # P(Y < observed value)
+                              pBI(Y, mu = mu, bd = N)))     # P(Y <= observed value)
+
+#res <- residuals(model.fit, type = "quantile")
+qqnorm(residuals_norm, main = "Q-Q Plot of Residuals")
+qqline(residuals_norm , col = "red", lwd = 2)
+```
+
+Mean, variance, skewness, kurtosis of residuals
+```{r}
+mean_res <- mean(residuals_norm)
+var_res <- var(residuals_norm)
+skewness_res <- skewness(residuals_norm)
+kurtosis_res <- kurtosis(residuals_norm)
+
+# Print results
+cat("Mean:", mean_res, "\n")
+cat("Variance:", var_res, "\n")
+cat("Skewness:", skewness_res, "\n")
+cat("Kurtosis:", kurtosis_res, "\n")
+```
+Mean: Should be close to zero if the residuals are symmetrically distributed.
+Variance: Indicates the spread of the residuals.
+Skewness: Measures the asymmetry of the residual distribution:
+  Zero indicates symmetry.
+  Positive skewness indicates a long right tail.
+  Negative skewness indicates a long left tail.
+Kurtosis: Measures the "tailedness" of the distribution:
+  Excess kurtosis near 0 suggests normal-like behavior.
+  Positive excess kurtosis indicates heavy tails.
+  Negative excess kurtosis suggests light tails.

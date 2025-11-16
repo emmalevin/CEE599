@@ -1,0 +1,105 @@
+---
+title: "Emma Levin, CEE599 Pset3"
+output: html_notebook
+---
+
+Clean up workspace and load packages
+```{r}
+rm(list=ls(all=TRUE))
+
+#Install the "fitdistrplus" and "actuar" packages as needed
+
+#Load the required libraries
+library(fitdistrplus)
+library(actuar)
+```
+
+**Problem 1**
+
+Here we use the peak flow data to examine how the estimates of the parameters of the lognormal distribution change over time using MME and MLE methods. 
+```{r}
+# read data, peak flow is colum peak_va in units cfs
+data <- read.csv("/Users/emmalevin/Desktop/CEE599/pset3_data.csv")
+
+# create lists of estimated parameters for each method
+meanlog_mme <- c()
+sdlog_mme <- c()
+meanlog_mle <- c()
+sdlog_mle <- c()
+
+# start loop at year 1910
+pos_start=which(data$peak_dt==1910)
+
+# loop through data (year by year) to estimate parameters using different methods
+for (i in pos_start:length(data$peak_tm))
+{
+  # method of moments estimation (use all data 1903 to year of interest)
+  fitln_mme <- fitdist(as.numeric(data$peak_tm[1:i]), "lnorm", method="mme")
+  meanlog_mme_value <- as.numeric(fitln_mme$estimate[1])
+  sdlog_mme_value <- as.numeric(fitln_mme$estimate[2])
+  # append to list for plotting
+  meanlog_mme <- c(meanlog_mme, meanlog_mme_value)
+  sdlog_mme <- c(sdlog_mme, sdlog_mme_value)
+  
+   # MLE estimation (use all data 1903 to year of interest)
+  fitln_mle <- fitdist(as.numeric(data$peak_tm[1:i]), "lnorm", method="mle")
+  meanlog_mle_value <- as.numeric(fitln_mle$estimate[1])
+  sdlog_mle_value <- as.numeric(fitln_mle$estimate[2])
+  # append to list for plotting
+  meanlog_mle <- c(meanlog_mle, meanlog_mle_value)
+  sdlog_mle <- c(sdlog_mle, sdlog_mle_value)
+  
+}
+```
+
+```{r}
+# plot results
+
+# plot log(mean) parameter
+plot(data$peak_dt[pos_start:length(data$peak_va)], meanlog_mle, main = 'Parameter Estimation Evolution', xlab="Year", ylab="log(Mean) [log(cfs)]", col="red", pch=16, cex=1)
+points(data$peak_dt[pos_start:length(data$peak_va)], meanlog_mme,col="blue", pch=16,cex=1)
+legend("topleft", inset = c(.5,0.1), cex = 1.5, bty = "n", legend = c("MME", "MLE"), text.col = c("red", "blue"),col = c("red", "blue"), pch = c(16,16))
+
+# plot log(sd) parameter
+plot(data$peak_dt[pos_start:length(data$peak_va)], sdlog_mle, main = 'Parameter Estimation Evolution', xlab="Year", ylab="log(SD) [log(cfs)]", col="red", pch=16, cex=1)
+points(data$peak_dt[pos_start:length(data$peak_va)], sdlog_mme,col="blue", pch=16,cex=1)
+legend("topleft", inset = c(.5,0.6), cex = 1.5, bty = "n", legend = c("MME", "MLE"), text.col = c("red", "blue"),col = c("red", "blue"), pch = c(16,16))
+```
+Log(mean) parameter estimation: For both estimates, the log(Mean) parameter ranges from 9.95 to 10.2 [log(cdfs)] for the duration of the data availability. Both methods yield similar estimates (with each year's parameter estimate difference between the methods approximately < 0.05). The highest differences in parameter estimation occurs between 1960-2000, and the estimators are closest in the initial decade of analysis. With both method cases, the estimation for log(Mean) generally decreases from 1920 to 1940 and increases again from 1980 to 2023. After 1940, the MME estimator is generally lower than the MLE estimator. 
+
+Log(sd) parameter estimation: For both estimates, the log(sd) parameter ranges from 0.45 to 0.70 [log(cdfs)] for the duration of the data availability, which is a greater relative variability in comparison to the log(mean) parameter. Difference between the parameter estimation between the two methods ranges from ~0 to ~0.15, which is large relative to the range of parameter values. The largest discrepancies between the two method's estimators occurs between 1940-2000. The MME estimate is larger than the MLE estimate after 1940, and prior to this year the estimators are very similar. Additionally, although the estimated parameter increases over time there are several jumps in the parameter estimate.  For example, there are rapid increases in 1930 and 1960. Perhaps the log(sd) parameter is more susceptible to variability in the data than the log(mean) parameter, which does not exhibit such rapid changes. The estimated parameter experiences a local maximum around 1965. 
+
+**Problem 2**
+
+The beta distribution has parameters $\alpha$ and $\beta$, which we will be estimating using method of moments. From Wikipedia, $E[X] = \frac{\alpha}{\alpha + \beta}$ and $var[X] = \frac{\alpha \beta}{(\alpha + \beta)^2(\alpha + \beta + 1)}$. Using method of moments, we set our sample mean and standard deviation squared equal to the expectation and variance to solve for $\alpha$ and $\beta$. First, we begin with the expectation:
+$$\bar{x} = \frac{\alpha}{\alpha + \beta} \implies \bar{x}\alpha + \bar{x}\beta = \alpha \implies  \bar{x}\beta = \alpha - \bar{x}\alpha  \implies \beta = \frac{\alpha}{\bar{x}} - \alpha = \alpha\left(\frac{1}{\bar{x} } - 1\right)$$
+Next we make use of the variance equation and substitute from above:
+$$\hat{s}^2 = \frac{\alpha \beta}{(\alpha + \beta)^2(\alpha + \beta + 1)} = \frac{\alpha^2\left(\frac{1}{\bar{x} } - 1\right)}{\left( \alpha + \alpha\left(\frac{1}{\bar{x} } - 1\right)\right)^2\left(\alpha + \alpha\left(\frac{1}{\bar{x} } - 1\right) + 1 \right)} $$ 
+$$=  \frac{\left(\frac{1}{\bar{x} } - 1\right)}{\left( 1+ \left(\frac{1}{\bar{x} } - 1\right)\right)^2\left(\alpha + \alpha\left(\frac{1}{\bar{x} } - 1\right) + 1 \right)}= \frac{\left(\frac{1}{\bar{x} } - 1\right)}{\left( 1+ \left(\frac{1}{\bar{x} } - 1\right)\right)^2\left(\alpha + \alpha\left(\frac{1}{\bar{x} } - 1\right) + 1 \right)} $$
+$$= \frac{\left(\frac{1}{\bar{x} } - 1\right)}{\alpha\left[1+\left(\frac{1}{\bar{x} } - 1\right)\right]^3 + \left[1 + \left(\frac{1}{\bar{x} } - 1\right) \right]^2} $$
+Thus 
+$$\hat{s}^2 \left(\alpha\left[1+\left(\frac{1}{\bar{x} } - 1\right)\right]^3 + \left[1 + \left(\frac{1}{\bar{x} } - 1\right) \right]^2 \right) = \frac{1}{\bar{x} } - 1 = \hat{s}^2 \left(\alpha\left[\frac{1}{\bar{x} } \right]^3 + \left[ \frac{1}{\bar{x} }  \right]^2 \right) $$
+$$ \alpha\hat{s}^2\left[\frac{1}{\bar{x} } \right]^3 + \hat{s}^2\left[ \frac{1}{\bar{x} }  \right]^2 = \frac{1}{\bar{x}} - 1 \implies  \alpha\hat{s}^2\left[\frac{1}{\bar{x} } \right]^3 = \left(\frac{1}{\bar{x}} - 1 \right) - \hat{s}^2\left[ \frac{1}{\bar{x} }  \right]^2$$
+Finally,
+$$\hat{\alpha} = \frac{\bar{x}^3}{\hat{s}^2}\left[ \left(\frac{1}{\bar{x}} - 1 \right) - \hat{s}^2\left[ \frac{1}{\bar{x} }  \right]^2\right]  = \frac{\bar{x}^2}{\hat{s}^2 } - \frac{\bar{x}^3}{\hat{s}^2} - \bar{x}$$
+noting that $\alpha$ is hatted since this is our parameter estimation. 
+
+Now substituting into our expression for $\beta$ we obtain:
+$$\hat{\beta}  = \hat{\alpha}\left(\frac{1}{\bar{x}}-1 \right) = \left[\frac{\bar{x}^2}{\hat{s}^2 } - \frac{\bar{x}^3}{\hat{s}^2} - \bar{x} \right]\left(\frac{1}{\bar{x}}-1 \right)$$
+again, where $\beta$ is hatted since this is our parameter estimation.
+
+**Problem 3**
+
+To derive expressions for the estimators of $\alpha$ and $\lambda$, we will use the likelihood function of the gamma distribution:
+$$l(\alpha, \lambda | \mathbb{x}) = \Pi_{i=1}^n \frac{\alpha^{\lambda}}{\Gamma(\lambda)}x_i^{\lambda - 1}\exp(-\alpha x_i) = \left(\frac{\alpha^{\lambda}}{\Gamma(\lambda)}\right)^n \Pi_{i=1}^n x_i^{\lambda - 1}\exp(-\alpha x_i)$$
+Now we take the logarithm of the likelihood, since it is a monotone function, which we ultimately seek to maximize:
+$$\ln(l(\alpha, \lambda | \mathbb{x})) = n\lambda \ln(\alpha) - n\ln(\Gamma(\lambda)) + (\lambda - 1)\sum_{i=1}^{n}\ln x_i - \alpha \sum_{i=1}^{n} x_i$$
+Now to find the $\lambda$ and $\alpha$ which maximize this function, we differentiate our log-likelihood with respect to the parameters and set it equal to zero. First to solve for $\alpha$:
+$$\frac{d \ln(l(\alpha, \lambda | \mathbb{x}))}{d\alpha} = \frac{n\lambda}{\alpha} - \sum_{i=1}^{n} x_i = 0 \implies \hat{\alpha} = \frac{n\hat{\lambda}}{\sum_{i=1}^{n} x_i}$$
+Next, we differentiate with respect to $\lambda$:
+$$\frac{d \ln(l(\alpha, \lambda | \mathbb{x}))}{d\lambda} = n\ln\alpha - n\frac{d \Gamma(\lambda)}{d\lambda} + \sum_{i=1}^{n} \ln x_i = 0$$
+
+Then we substitute from above for $\hat{\alpha}$:
+$$n\ln\left( \frac{n\hat{\lambda}}{\sum_{i=1}^{n} x_i} \right) - n\frac{d \Gamma(\lambda)}{d\lambda} + \sum_{i=1}^{n} \ln x_i = 0 $$
+
+Which, given the data (each $x_i$ and $n$), we could solve numerically for $\hat{\lambda}$. Then, to solve for $\hat{\alpha}$, we would substitute into our solution into $\hat{\alpha} = \frac{n\hat{\lambda}}{\sum_{i=1}^{n} x_i}$.

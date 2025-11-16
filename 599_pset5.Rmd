@@ -1,0 +1,89 @@
+---
+title: "Pset 5, Emma Levin"
+output: html_notebook
+---
+
+Clear workspace
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+**Question 1**
+
+```{r}
+# data for flows in the first half
+x_1 <- c(1092, 1099, 1440, 1083, 1621, 1132, 935, 1540, 1966, 775, 1166, 843, 1508, 1876, 1696, 1690, 2730, 1440, 985, 1346, 1553, 1370, 743, 1340, 896, 1600, 2189)
+x_bar_1 <- mean(x_1)
+n_1 <- length(x_1)
+sd_1 <- sd(x_1)
+
+# data for flows in the second half
+x_2 <- c(1600, 714, 794, 1460, 1240, 1230, 1270, 861, 1355, 612, 822, 1370, 1380, 510, 810, 735, 259, 1290, 1325, 528, 622, 355, 468, 472, 664, 717, 950)
+x_bar_2 <- mean(x_2)
+n_2 <- length(x_2)
+sd_2 <- sd(x_2)
+
+```
+
+Following the steps of hypothesis testing: 
+1) $H_0: \mu_{x_2} - \mu_{x_1} \geq 0$
+2) $H_1: \mu_{x_2} - \mu_{x_1} < 0$
+
+We will complete steps 3-6 in each part of the problem.
+
+Determine if the mean annual maximum flow in the second half is lower than those in the first half at a level of significance α= .01 under the following conditions:
+
+a)  If the standard deviation is 450 m3/sec.
+
+If we assume that the variance is known, we know the distribution of the test statistic is normal.Then, our estimation of the test statistic is $\frac{\bar{x_2} - \bar{x_1}}{\sigma \sqrt{1/n_1 + 1/n_2}}$. In order to reject the null hypothesis with $\alpha = 0.01$ for a one sided test, the Z-score threshold is:
+```{r}
+qnorm(0.01,0,1)
+```
+
+Next we compute the test statistic for our given data:
+```{r}
+sigma = 450
+x_bar_diff = x_bar_2 - x_bar_1 # mean of normal distribution
+se =  sigma * sqrt(1/n_1 + 1/n_2)# standard error 
+z = x_bar_diff / se
+z
+```
+Since our test statistic is below our criteria rejecting the null hypothesis, we can reject the null hypothesis that $H_0: \mu_{x_2} - \mu_{x_1} \geq 0$. 
+
+(b) If the standard deviation is estimated from the data but is assumed to be equal.
+
+We assume the data follows a t-distribution and the t-statistic criteria for rejecting the null hypothesis is (where degrees of freedom are n1+n2-2) :
+```{r}
+dof = n_1 + n_2 - 2
+qt(p = 0.01, df = dof, lower.tail = TRUE)
+```
+Now we determine our test statistic:
+```{r}
+t.test(x_2,x_1, mu = 0,alternative="less", var.equal=TRUE)
+```
+Since the test statistic is less than the rejection criteria (-4.26 < -2.4), we can reject the null hypothesis that $H_0: \mu_{x_2} - \mu_{x_1} \geq 0$. 
+
+(c) If the standard deviations are estimated separately for the two halves and are assumed to be different.
+
+We assume the data follows a t-distribution and the t-statistic criteria for rejecting the null hypothesis is (where degrees of freedom are given by 5.4.11) :
+```{r}
+dof = (sd_1**2/n_1 + sd_2**2/n_2)**2 / ( (sd_1**2/n_1)**2/(n_1-1) + (sd_2**2/n_2)**2/(n_2-1))
+qt(p = 0.01, df = dof, lower.tail = TRUE)
+```
+
+Now we determine our test statistic:
+```{r}
+t.test(x_2,x_1, mu = 0,alternative="less", var.equal=FALSE)
+```
+Since the test statistic is less than the rejection criteria (-4.26 < -2.4), we can reject the null hypothesis that $H_0: \mu_{x_2} - \mu_{x_1} \geq 0$. 
+
+(d) Using the estimated variances in part c, above, determine whether the change in the variance is significant for α = .01?
+1) $H_0: \sigma_{x_2}^2 - \sigma_{x_1}^2 = 0$
+2) $H_1: \sigma_{x_2}^2 - \sigma_{x_1}^2 \neq 0$
+
+```{r}
+#Using an F test
+var.test(x_1,x_2,alternative="two.sided")
+```
+Since the p-value is not less than the rejection criteria (0.3862>0.01), we cannot reject the null hypothesis that the change in variance is insignificant. 
+

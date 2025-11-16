@@ -1,0 +1,90 @@
+---
+title: "Emma Levin, CEE599 Pset 4"
+output:
+  html_document:
+    df_print: paged
+---
+
+Clear workspace
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+**Question 1**
+
+(a) Assuming a normal population, provide 95 percent confidence limits for the mean.
+```{r}
+# data collected
+x <- c(2437,2437, 2425, 2427, 2428, 2448, 2456, 2436, 2435, 2446, 2441, 2456, 2444, 2447, 2433, 2429, 2435, 2471, 2472, 2445)
+
+# sample mean and standard deviation
+x_bar <- mean(x)
+s_hat <- sd(x)
+
+# determine confidence interval using sample mean and standard deviation
+n <- length(x)
+df=n-1 #degrees of freedom
+se=s_hat/sqrt(n) #standard error
+
+
+cl=qt(0.025,df)*se+x_bar
+cu=qt(0.975,df)*se+x_bar
+
+cl
+cu
+
+```
+
+(b) Revise the confidence limits for the mean if the population standard deviation is 16.
+```{r}
+# determine confidence interval using sample mean and population standard deviation
+sigma <- 16
+se=sigma/sqrt(n) #standard error
+
+# confidence limits
+qnorm(0.025,x_bar,se)
+qnorm(0.975,x_bar,se)
+```
+
+(c) Provide the 95 percent confidence limits on the population variance.
+```{r}
+alpha=0.025 #two-sided 95% confiddence interval
+
+ll_var=(df*(s_hat^2))/qchisq(1-alpha, df) # lower limit of variance
+ul_var=(df*(s_hat^2))/qchisq(alpha, df) # upper limit of variance
+
+ll_var # lower limit of standard deviation
+ul_var # upper limit of standard deviation
+
+```
+
+**Question 2**
+
+Monitoring of pollution levels of similar streams in a region indicates that the standard deviation of DO is 1.95 mg/L over a long period of time.
+
+(a) What is the minimum number of observations required to estimate the mean DO within ± 0.5 mg/L with 95 percent confidence?
+
+First, we assume that we know the population standard deviation (1.95 mg/L). If we want a 95% conficence interval of the mean, we know the following must be true:
+$$Pr[-1.96 \leq \frac{\bar{x}-\mu}{\sigma/\sqrt{n}} \leq 1.96] = 0.95 $$
+Thus plugging in the assumed population standard deviation:
+$$Pr[-1.96 \leq \frac{\bar{x}-\mu}{1.95/\sqrt{n}} \leq 1.96] = 0.95 $$
+Next, in order to estimate the mean DO within ± 0.5 mg/L with 95 percent confidence, the following must be true:
+$$Pr[-0.5 \leq \bar{x}-\mu \leq 0.5] = 0.95 $$
+Thus, we see that to arrive at this equation from the previous equation, it must be true that $1.96\left(\frac{1.95}{\sqrt{n}}\right) = 0.5$, since we must multiply both sides of the inequality by the standard error. Solving for n, we obtain $$\left(\frac{1.96(1.95)}{0.5}\right)^2 = n = 58.43$$
+
+Therefore, the minimum number of observations required to estimate estimate the mean DO within ± 0.5 mg/L with 95 percent confidence is 59. 
+
+(b) If only 30 observations are taken, what should be the percentage level in the confidence limits for the same difference in means?
+
+Given that we want the mean DO within ± 0.5 mg/L and that we have 30 observations, we will determine the associated Z-score for the normal distribution and percentage level. 
+$$Z_{\alpha/2} \frac{\sigma}{\sqrt{n}} = 0.5 \rightarrow Z_{\alpha/2} \frac{1.95}{\sqrt{30}} = 0.5 \rightarrow Z_{\alpha/2} = 0.5 \frac{\sqrt{30}}{1.95} = 1.4$$
+Now given a Z-score of 1.4, I will calculate the normal distribution percentile associated with that score and determine the percentage level in the confidence limits:
+```{r}
+z = 1.4
+percentile <- pnorm(z)
+percentile
+```
+Thus, the percentage level in the confidence limits for the difference in means is:
+$$1-\left(1-.919\right)\cdot2 = 0.838$$
+So the confidence interval would yield an 83.8% percentage level, which makes sense since we have fewer observations, so the percentage level is lower than the initial 95%. 

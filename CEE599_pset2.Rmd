@@ -1,0 +1,153 @@
+---
+title: "Emma Levin CEE 599 Pset 2"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(lattice) # load "lattice" package
+
+rm(list=ls(all=TRUE)) #clear the workspace
+```
+
+
+**Problem 1**: Determine the expected value and variance of X. With 
+$$
+X = \{0,1,2,3,4,5,6,7 \}
+$$ 
+and the corresponding probabilities
+$$
+p_X(x)  = \{0.28, 0.22, 0.18, 0.13, 0.09, 0.06, 0.03, 0.01  \}
+$$
+To calculate the expected value of $X$, we compute:
+$$
+E[X] = \sum_{all\; x_i} x_i p_X (x_i) = 0 \cdot 0.28 + 1 \cdot 0.22 + 2 \cdot 0.18 + 3 \cdot 0.13 + 4 \cdot 0.09 + 5 \cdot 0.06 + 6 \cdot 0.03 + 7 \cdot 0.01 
+$$
+Compute in R:
+```{r}
+x_i <- c(0,1,2,3,4,5,6,7)
+pX_x_i <- c(0.28, 0.22, 0.18, 0.13, 0.09, 0.06, 0.03, 0.01)
+E_X = sum(x_i * pX_x_i)
+E_X
+```
+Next, to compute the variance, we calculate the following:
+$$
+Var(X) = E(X^2) - [E(X)]^2
+$$
+where we have already computed $E(X)$ from the previous part of the problem. We compute $E(X^2)$ as follows:
+$$
+E(X^2) = \sum_{all\; x_i} x_i^2 \; p_X (x_i) = 0^2 \cdot 0.28 + 1^2 \cdot 0.22 + 2^2 \cdot 0.18 + 3^2 \cdot 0.13 + 4^2 \cdot 0.09 + 5^2 \cdot 0.06 + 6^2 \cdot 0.03 + 7^2 \cdot 0.01 
+$$
+Compute in R and combine to find the variance:
+```{r}
+x_i_2 <- x_i^2
+E_X2 <- sum(x_i_2 * pX_x_i)
+
+# now to compute the variance
+var_X <- E_X2 - E_X^2
+var_X
+```
+
+**Problem 2**: The tensile strength of a structural material is found to be highly variable, although tests showedthat there is an increasing number of specimens of high strengths with a possible limit of 20 N/mm2in strength. Based on observations and as a first approximation, the pdf of tensile strength X is
+represented by the function $f_X(x) = ax^2, 0 ≤ x ≤ 20$ N/mm2.
+
+a) Determine the constant a in the function.
+To determine a, we use the following rule for pdfs: $\int_{-\infty}^{\infty}f_X(x) dx= 1$ for our given pdf:
+$$
+\int_{0}^{20}a x^2 dx = a\int_{0}^{20} x^2 dx = \frac{a}{3}x^3|_{0}^{20} = \frac{a}{3}(20^3 - 0)= \frac{8000}{3}a = 1
+$$
+Thus $a=3/8000$.
+
+b) What is the probability of X >10 N/mm2
+To calculate $p_X(x>10)$, we can find $p_X(x>10) = 1 - p_X(x<10) = 1-\int_0^{10}f_X(x) dx$:
+$$
+p_X(x>10) =  1-\int_0^{10}f_X(x) dx = 1-\frac{3}{8000}\int_{0}^{10} x^2 dx = 1 - \frac{3}{8000} \left[\frac{1}{3}x^3|_{0}^{10} \right] = 1- \frac{1}{8000}10^3 = 0.875
+$$
+Thus, the probability of X > 10 N/mm2 is 0.875. 
+
+**Problem 3**: A tower is subject to a horizontal force caused by high winds. An important factor which should be taken into account when strengthening the tower is the duration of the winds. The duration T of
+winds in the area is a random variable with a maximum of 18 hours. From observations of wind
+data, the pdf of T can be approximated to the form $f_T(t) = ct^{1.5}$, with a maximum ordinate of k.
+
+a) Evaluate c and k.
+First, to evaluate c, we will use the same rule for pdfs as above ($\int_{-\infty}^{\infty}f_X(x) dx= 1$) with our given pdf:
+$$
+\int_{0}^{18}c t^{1.5} dt = c \int_{0}^{18} t^{1.5} dt = \frac{c}{2.5}t^{2.5}|_{0}^{18} = \frac{c}{2.5}(18^{2.5} - 0) = 549.846 \;c = 1
+$$
+Therefore $c = 1/549.846 = 0.00182$.
+
+The maximum ordinate of the pdf (k) represents the value of t (windspeed) that maximizes the pdf. Thus, we will plot the pdf and determine the windspeed that maximizes it. 
+```{r}
+c <- 0.00182
+
+f <- function(t,...) { c * t^1.5  * (0 <= t & t <= 18) }
+t=seq(from=0,to=18,by=0.01)
+
+plot(t,f(t),type="l") #plotting the pdf
+```
+Clearly, since f is an increasing function along its domain, the maximum ordinate k is 18 m/s, which is the maximum possible windspeed. 
+
+b) to find $E(T)$, we compute $E(T) = \int_{-\infty}^{\infty} t f_T(t) dt = 0.00182 \int_{0}^{18} t (t^{1.5}) dt $. We will do so manually in R.
+
+```{r}
+
+f_times_t <- function(t,...) { c * t * t^1.5  * (0 <= t & t <= 18)}
+E_T <- integrate(f_times_t,0,18)$value
+E_T
+```
+
+Next, to find the coefficient of variation of T (standard deviation / mean), we will compute the standard deviation. $\sigma(T) = \sqrt(Var(T)) = \sqrt{E(T^2) - [E(T)]^2}$. To compute $E(T^2)$, we will calculate $E(T) = \int_{-\infty}^{\infty} t^2 f_T(t) dt = 0.00182 \int_{0}^{18} t^2 (t^{1.5}) dt $. We will do so manually in R, and find the resulting coefficient of variation.
+
+```{r}
+f_times_t2 <- function(t,...) { c * t^2 * t^1.5  * (0 <= t & t <= 18)}
+E_T_2 <- integrate(f_times_t2,0,18)$value
+
+var_T = E_T_2 - E_T^2
+std_T = sqrt(var_T)
+CV_T = std_T/E_T
+CV_T
+```
+
+c) What is the probability of a wind lasting more than nine hours?
+To calculate $p_T(t>9)$, we can find $p_T(t>9) = 1 - p_T(x<9) = 1-\int_0^{9} f_T(t) dt$. We will compute this integral manually in R:
+```{r}
+p_9more = 1 - integrate(f,0,9)$value
+p_9more
+```
+
+**Problem 4**: Highway accidents along a busy highway leading away from a city have the following pmf:
+$$
+p_X(x) = \nu^x \frac{e^{-\nu}}{x!}
+$$
+for x = 0,1,2, ...
+Originally ν has been estimated as 0.9. Subsequently the exit road was widened and the parameter was
+estimated as 0.5. Plot the pmf in each case and determine the probabilities of Pr[X > 0].
+
+First, we will plot the pmf for a parameter of 0.9 and then for a parameter of 0.5:
+```{r}
+# pmf function
+pmf <- function(x, nu) {
+  sapply(x, function(x) {
+    if ( ! ( x >= 0 ) ) { return(0) }
+    return( (nu) * (exp(-nu))/(factorial(x)) )
+  })
+}
+
+# plot pmf for parameter=0.9
+xyplot(pmf(0:5, 0.9)~0:5, xlab="x", ylab="probability", main="parameter=0.9", type="h")
+# plot pmf for parameter=0.5
+xyplot(pmf(0:5, 0.5)~0:5, xlab="x", ylab="probability", main="parameter=0.5", type="h")
+```
+Now, to determine the probabilities for each case of $P[X>0]$, we know $P[X>0] = 1- P[X\leq0] = 1-P(X = 0)$. We will compute these probabilities in R:
+```{r}
+# probability for parameter=0.9
+P_param1 <- 1 - pmf(0, 0.9)
+P_param1
+
+# probability for parameter=0.5
+P_param2 <- 1 - pmf(0, 0.5)
+P_param2
+```
